@@ -19,6 +19,8 @@ module Option = Core.Std.Option
 module String = Core.Std.String
 *)
 
+external sha1 : string -> string = "caml_sha1"
+
 let random_string ?(base64=false) ?g size : string =
   Core.Std.String.create size
 (*
@@ -31,8 +33,11 @@ let b64_encoded_sha1sum s =
   (*let open Nocrypto in*)
   (*Cstruct.of_string s |>*)
   (*Hash.SHA1.digest |>*)
+(*
   Sha1.string s |>
   Sha1.to_bin |>
+*)
+  sha1 s |>
   B64.encode (*|>
   Cstruct.to_string*)
 
