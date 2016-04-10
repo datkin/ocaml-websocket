@@ -12,25 +12,18 @@ tags: [
   "org:xapi-project"
 ]
 build: [
-  ["ocaml" "pkg/build.ml" "native=%{ocaml-native}%"
-                          "native-dynlink=%{ocaml-native-dynlink}%"
-                          "lwt=%{lwt:installed}%"
-                          "async=%{async:installed}%"
+  ["ocaml"
+     "pkg/build.ml"
+     "native=%{ocaml-native}%"
+     "native-dynlink=%{ocaml-native-dynlink}%"
   ]
 ]
 depends: [
-  "containers" {>= "0.10"}
   "cohttp" {>= "0.17.1"}
+  "async" {>= "113.33.00"}
   "ocplib-endian" {>= "0.8"}
-  "ppx_deriving" {>= "2.0"}
-  "nocrypto" {>= "0.5.0"}
-  "conduit" {>= "0.8.3"}
-]
-
-depopts: ["async" "lwt"]
-conflicts: [
-  "lwt" {< "2.4.8"}
-  "async" {< "112.35.00"}
+  "sha" {>= "1.9"}
+  "base64" {>= "2.0.0"}
 ]
 
 available: [ ocaml-version >="4.02.0" ]

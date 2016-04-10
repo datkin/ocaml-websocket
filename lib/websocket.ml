@@ -14,22 +14,34 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *)
+(*
+module Option = Core.Std.Option
+module String = Core.Std.String
+*)
 
-let random_string ?(base64=false) ?g size =
+let random_string ?(base64=false) ?g size : string =
+  Core.Std.String.create size
+(*
   Nocrypto.Rng.generate ?g size |>
   (if base64 then Nocrypto.Base64.encode else fun s -> s) |>
   Cstruct.to_string
+*)
 
 let b64_encoded_sha1sum s =
-  let open Nocrypto in
-  Cstruct.of_string s |>
-  Hash.SHA1.digest |>
-  Base64.encode |>
-  Cstruct.to_string
+  (*let open Nocrypto in*)
+  (*Cstruct.of_string s |>*)
+  (*Hash.SHA1.digest |>*)
+  Sha1.string s |>
+  Sha1.to_bin |>
+  B64.encode (*|>
+  Cstruct.to_string*)
 
 let websocket_uuid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 module Frame = struct
+  module Bytes_orig = Bytes
+  open Core.Std
+  module Bytes = Bytes_orig
   module Opcode = struct
     type t =
       | Continuation
@@ -39,7 +51,7 @@ module Frame = struct
       | Ping
       | Pong
       | Ctrl of int
-      | Nonctrl of int [@@deriving show]
+      | Nonctrl of int [@@deriving sexp]
 
     let min = 0x0
     let max = 0xf
@@ -72,7 +84,7 @@ module Frame = struct
              extension: int;
              final: bool;
              content: string;
-           } [@@deriving show]
+           } [@@deriving sexp]
 
   let create
       ?(opcode=Opcode.Text)
@@ -84,7 +96,7 @@ module Frame = struct
     }
 
   let of_bytes ?opcode ?extension ?final content =
-    let content = Bytes.unsafe_to_string content in
+    let content = Bytes.(*unsafe_*)to_string content in
     create ?opcode ?extension ?final ~content ()
 
   let close code =
@@ -112,7 +124,7 @@ let int_value shift len v = (v lsr shift) land ((1 lsl len) - 1)
 
 let upgrade_present hs =
   Cohttp.Header.get_multi hs "connection" |> fun hs ->
-  List.map (CCString.Split.list_cpy ~by:",") hs |> fun hs ->
+  List.map (Core.Std.String.split ~on:',') hs |> fun hs ->
   List.flatten hs |> fun hs ->
   List.map String.(fun h -> h |> lowercase |> trim) hs |>
   List.mem "upgrade"
@@ -183,7 +195,7 @@ module IO(IO: Cohttp.S.IO) = struct
       let opcode = int_value 0 4 hdr_part1 in
       let frame_masked = is_bit_set 7 hdr_part2 in
       let length = int_value 0 7 hdr_part2 in
-      let opcode = Frame.Opcode.of_enum opcode |> CCOpt.get_exn in
+      let opcode = Frame.Opcode.of_enum opcode |> Core.Std.Option.value_exn in
       (match length with
        | i when i < 126 -> return @@ Some i
        | 126            -> read_uint16 ic
@@ -193,7 +205,7 @@ module IO(IO: Cohttp.S.IO) = struct
       if payload_len = None then
         return (`Error ("payload len = " ^ string_of_int length))
       else
-        let payload_len = CCOpt.get_exn payload_len in
+        let payload_len = Core.Std.Option.value_exn payload_len in
         if extension <> 0 then close_with_code 1002 >>= fun () ->
           return (`Error "unsupported extension")
         else if Opcode.is_ctrl opcode && payload_len > 125

@@ -26,7 +26,7 @@ let client
     ?log
     ?(name="")
     ?(extra_headers = Header.init ())
-    ?g
+    (*?g*)
     ?initialized
     ~app_to_ws
     ~ws_to_app
@@ -34,7 +34,7 @@ let client
     ~ws_to_net
     uri =
   let drain_handshake r w =
-    let nonce = random_string ?g ~base64:true 16 in
+    let nonce = random_string (*?g*) ~base64:true 16 in
     let headers = Header.add_list extra_headers
         ["Upgrade"               , "websocket";
          "Connection"            , "Upgrade";
@@ -51,14 +51,14 @@ let client
         if Code.(is_error @@ code_of_status status) then failwith @@ "HTTP Error " ^ Code.(string_of_status status)
         else if Response.version response <> `HTTP_1_1 then failwith "HTTP version error"
         else if status <> `Switching_protocols then failwith @@ "status error " ^ Code.(string_of_status status)
-        else if CCOpt.map String.lowercase Header.(get headers "upgrade") <> Some "websocket" then failwith "upgrade error"
+        else if Core.Std.Option.map ~f:String.lowercase Header.(get headers "upgrade") <> Some "websocket" then failwith "upgrade error"
         else if not @@ upgrade_present headers then failwith "update not present"
         else if Header.get headers "sec-websocket-accept" <> Some (nonce ^ websocket_uuid |> b64_encoded_sha1sum) then failwith "accept error"
   in
   let run () =
     drain_handshake net_to_ws ws_to_net >>= fun () ->
     Option.iter initialized (fun ivar -> Ivar.fill ivar ());
-    let read_frame = make_read_frame ?g ~masked:true (net_to_ws, ws_to_net) in
+    let read_frame = make_read_frame (*?g*) ~masked:true (net_to_ws, ws_to_net) in
     let buf = Buffer.create 128 in
     (* this terminates -> net_to_ws && ws_to_net is closed *)
     let rec forward_frames_to_app ws_to_app =
@@ -82,7 +82,7 @@ let client
       Writer.transfer ws_to_net app_to_ws
         (fun fr ->
            Buffer.clear buf;
-           write_frame_to_buf ?g ~masked:true buf fr;
+           write_frame_to_buf (*?g*) ~masked:true buf fr;
            let contents = Buffer.contents buf in
            debug log "app -> net: %S" contents;
            Writer.write ws_to_net contents
@@ -106,7 +106,7 @@ let client_ez
     ?log
     ?(wait_for_pong=Time.Span.of_sec 5.)
     ?(heartbeat=Time.Span.zero)
-    ?g
+    (*?g*)
     uri
     _s r w =
   let open Frame in
@@ -129,7 +129,9 @@ let client_ez
       keepalive w
   in
   let react w fr =
+(*
     debug log "<- %s" Frame.(show fr);
+*)
     match fr.opcode with
     | Opcode.Ping ->
         Pipe.write w @@ Frame.create ~opcode:Opcode.Pong () >>| fun () ->
@@ -166,7 +168,7 @@ let client_ez
   end;
   don't_wait_for begin
     try_with ~extract_exn:true ~name:"client_ez"
-      (fun () -> client ?log ?g ~initialized ~app_to_ws
+      (fun () -> client ?log (*?g*) ~initialized ~app_to_ws
           ~ws_to_app ~net_to_ws:r ~ws_to_net:w uri)
     >>| function
     | Ok () ->
@@ -179,7 +181,7 @@ let client_ez
   end;
   client_read, client_write
 
-let server ?log ?(name="") ?g ~app_to_ws ~ws_to_app ~reader ~writer address =
+let server ?log ?(name="") (*?g*) ~app_to_ws ~ws_to_app ~net_to_ws ~ws_to_net address =
   let server_fun address r w =
     (Request_async.read r >>| function
       | `Ok r -> r
@@ -196,12 +198,12 @@ let server ?log ?(name="") ?g ~app_to_ws ~ws_to_app ~reader ~writer address =
     if not (
         version = `HTTP_1_1
         && meth = `GET
-        && CCOpt.map String.lowercase @@
+        && Core.Std.Option.map ~f:String.lowercase @@
         Header.get headers "upgrade" = Some "websocket"
         && upgrade_present headers
       )
     then failwith "Protocol error";
-    let key = CCOpt.get_exn @@ Header.get headers "sec-websocket-key" in
+    let key = Core.Std.Option.value_exn (Header.get headers "sec-websocket-key") in
     let hash = key ^ websocket_uuid |> b64_encoded_sha1sum in
     let response_headers = Header.of_list
         ["Upgrade", "websocket";
@@ -213,8 +215,10 @@ let server ?log ?(name="") ?g ~app_to_ws ~ws_to_app ~reader ~writer address =
         ~headers:response_headers () in
     Response_async.write (fun writer -> Deferred.unit) response w
   in
-  server_fun address reader writer >>= fun () ->
-  let read_frame = make_read_frame ?g ~masked:true (reader, writer) in
+  Writer.of_pipe Info.(of_string "ws_to_net") ws_to_net >>= fun (w, _) ->
+  Reader.of_pipe Info.(of_string "net_to_ws") net_to_ws >>= fun r ->
+  server_fun address r w >>= fun () ->
+  let read_frame = make_read_frame (*?g*) ~masked:true (r, w) in
   let run () =
     read_frame () >>= function
     | `Error msg -> failwith msg
@@ -228,10 +232,10 @@ let server ?log ?(name="") ?g ~app_to_ws ~ws_to_app ~reader ~writer address =
       loop ()
   in
   let buf = Buffer.create 128 in
-  let transfer_end = Pipe.transfer app_to_ws Writer.(pipe writer)
+  let transfer_end = Pipe.transfer app_to_ws Writer.(pipe w)
     (fun fr ->
        Buffer.clear buf;
-       write_frame_to_buf ?g ~masked:false buf fr;
+       write_frame_to_buf (*?g*) ~masked:false buf fr;
        Buffer.contents buf
     )
   in

@@ -1,64 +1,16 @@
 true: bin_annot, debug, safe_string
 
 <lib>: include
-<tests>: include
 
+<lib/websocket.*>: \
+  package(core), \
+  package(cohttp), \
+  package(sha), \
+  package(ocplib-endian), \
+  ppx(ppx-jane -as-ppx)
 
-<lib/websocket.*>: package(ppx_deriving.std), \
-                   package(cohttp), \
-                   package(containers), \
-                   package(nocrypto)
-
-<lib/websocket_lwt.*>: package(lwt), \
-                       package(lwt.ppx), \
-                       package(uri), \
-                       package(cohttp.lwt), \
-                       package(ppx_deriving.std), \
-                       package(containers), \
-                       package(nocrypto.lwt), \
-                       package(conduit)
-
-<lib/websocket_cohttp_lwt.*>: package(lwt), \
-                              package(lwt.ppx), \
-                              package(uri), \
-                              package(cohttp.lwt), \
-                              package(containers), \
-                              package(conduit), \
-                              package(nocrypto)
-
-<lib/websocket_async.*>: package(async), \
-                       package(uri), \
-                       package(cohttp.async), \
-                       package(ppx_deriving.std), \
-                       package(containers), \
-                       package(nocrypto), \
-                       package(conduit), \
-                       thread
-
-<tests/{wscat,reynir}.*>: package(lwt), \
-             package(lwt.ppx), \
-             package(uri), \
-             package(cohttp.lwt), \
-             package(ppx_deriving.std), \
-             package(containers), \
-             package(nocrypto.lwt), \
-             package(conduit)
-
-<tests/wscat_async.*>: package(core), \
-                       package(async), \
-                       package(ppx_deriving.std), \
-                       thread, \
-                       package(uri), \
-                       package(cohttp.async), \
-                       package(nocrypto.unix), \
-                       package(containers)
-
-<tests/upgrade_connection.*>: \
-    package(containers), \
-    package(cohttp), \
-    package(cohttp.lwt), \
-    package(conduit), \
-    package(lwt), \
-    package(lwt.ppx), \
-    package(nocrypto.lwt), \
-    package(ppx_deriving)
+<lib/websocket_async.*>: \
+  package(async), \
+  package(uri), \
+  package(cohttp.async), \
+  thread
