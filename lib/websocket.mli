@@ -1,12 +1,8 @@
-open Core.Std
-
-val random_string : ?base64:bool -> ?g:'a -> int -> bytes
-val b64_encoded_sha1sum : bytes -> bytes
-val websocket_uuid : bytes
+val random_string : ?base64:bool -> ?g:'a -> int -> string
+val b64_encoded_sha1sum : string -> string
+val websocket_uuid : string
 
 module Frame : sig
-  module Bytes_orig = Bytes
-  module Bytes = Bytes_orig
   module Opcode : sig
     type t =
         Continuation
@@ -29,12 +25,12 @@ module Frame : sig
     opcode : Opcode.t;
     extension : int;
     final : bool;
-    content : bytes;
+    content : string;
   } [@@deriving sexp]
 
   val create :
     ?opcode:Opcode.t ->
-    ?extension:int -> ?final:bool -> ?content:bytes -> unit -> t
+    ?extension:int -> ?final:bool -> ?content:string -> unit -> t
   val of_bytes :
     ?opcode:Opcode.t -> ?extension:int -> ?final:bool -> bytes -> t
   val close : int -> t
@@ -43,7 +39,7 @@ module Frame : sig
     ?extension:int -> ?final:bool -> bytes -> int -> int -> t
 end
 
-val xor : bytes -> bytes -> unit
+val xor : string -> bytes -> unit
 val is_bit_set : int -> int -> bool
 val set_bit : int -> int -> bool -> int
 val int_value : int -> int -> int -> int
@@ -57,5 +53,5 @@ module IO : functor (IO : Cohttp.S.IO) -> sig
   val make_read_frame :
     ?g:'a ->
     masked:bool ->
-    IO.ic * IO.oc -> unit -> [> `Error of bytes | `Ok of Frame.t ] IO.t
+    IO.ic * IO.oc -> unit -> [> `Error of string | `Ok of Frame.t ] IO.t
 end
