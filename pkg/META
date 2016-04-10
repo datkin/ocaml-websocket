@@ -1,6 +1,6 @@
 version = "2.2"
 description = "Websocket library"
-requires = "ppx_deriving.std cohttp ocplib-endian"
+requires = "ppx_deriving.std cohttp ocplib-endian sha"
 archive(byte) = "websocket.cma"
 archive(byte, plugin) = "websocket.cma"
 archive(native) = "websocket.cmxa"
