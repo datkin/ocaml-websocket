@@ -200,7 +200,7 @@ module IO(IO: Cohttp.S.IO) = struct
       let opcode = int_value 0 4 hdr_part1 in
       let frame_masked = is_bit_set 7 hdr_part2 in
       let length = int_value 0 7 hdr_part2 in
-      let opcode = Frame.Opcode.of_enum opcode |> Core.Std.Option.value_exn in
+      let opcode = Core.Std.Option.value_exn (Frame.Opcode.of_enum opcode) in
       (match length with
        | i when i < 126 -> return @@ Some i
        | 126            -> read_uint16 ic

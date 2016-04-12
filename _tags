@@ -2,6 +2,15 @@ true: bin_annot, debug, safe_string
 
 <lib>: include
 
+<lib/libwebsocket_stubs.*>: \
+  use_websocket
+
+<lib/websocket.{cma,cmxa}>: \
+  use_websocket
+
+<lib/websocket.cmxs>: \
+  link_websocket
+
 <lib/websocket.*>: \
   package(core), \
   package(cohttp), \
